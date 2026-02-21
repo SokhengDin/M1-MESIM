@@ -1,6 +1,7 @@
 services:
   app:
     build: ./project-mesim
+    container_name: project-mesim
     restart: unless-stopped
     environment:
       - NODE_ENV=production

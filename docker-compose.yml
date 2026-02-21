@@ -1,0 +1,12 @@
+services:
+  app:
+    build: ./project-mesim
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    networks:
+      - alpha_network
+
+networks:
+  alpha_network:
+    external: true

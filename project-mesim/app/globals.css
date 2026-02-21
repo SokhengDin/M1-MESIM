@@ -9,10 +9,30 @@
 .katex-display { display: block; text-align: center; margin: 0.5em 0; }
 .katex-display > .katex { display: inline-block; text-align: initial; }
 
+/* ── Light theme ─────────────────────────────────────────────────────────── */
 :root {
-  --background: #f4f4f5;   /* zinc-100 */
-  --foreground: #18181b;   /* zinc-900 */
-  --accent:     #e11d48;   /* rose-600 */
+  --background: #f4f4f5;
+  --foreground: #18181b;
+  --accent:     #e11d48;
+
+  --surface:    #ffffff;
+  --surface-2:  #f4f4f5;
+  --border:     #e4e4e7;
+  --border-2:   #f1f1f1;
+  --muted:      #a1a1aa;
+}
+
+/* ── Dark theme ──────────────────────────────────────────────────────────── */
+.dark {
+  --background: #18181b;
+  --foreground: #f4f4f5;
+  --accent:     #fb7185;
+
+  --surface:    #27272a;
+  --surface-2:  #3f3f46;
+  --border:     #3f3f46;
+  --border-2:   #52525b;
+  --muted:      #71717a;
 }
 
 html, body {
@@ -25,9 +45,10 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: system-ui, -apple-system, sans-serif;
+  transition: background 0.2s, color 0.2s;
 }
 
-/* Sidebar: always visible and in-flow on desktop */
+/* ── Sidebar: always visible and in-flow on desktop ─────────────────────── */
 @media (min-width: 768px) {
   .sidebar-nav {
     position: relative !important;
@@ -36,3 +57,19 @@ body {
     height: 100% !important;
   }
 }
+
+/* ── Input shake animation ───────────────────────────────────────────────── */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-6px); }
+  40%       { transform: translateX(6px); }
+  60%       { transform: translateX(-4px); }
+  80%       { transform: translateX(4px); }
+}
+.shake { animation: shake 0.35s ease; }
+
+/* ── Score ring draw animation ───────────────────────────────────────────── */
+@keyframes ring-draw {
+  from { stroke-dasharray: 0 340; }
+}
+.ring-animated { animation: ring-draw 1s cubic-bezier(0.4, 0, 0.2, 1) forwards; }

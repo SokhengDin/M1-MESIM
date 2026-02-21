@@ -495,7 +495,7 @@ function IntroScreen({ onStart }) {
       {/* Config */}
       <div className="rounded-2xl border p-6" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
         <p className="text-[14px] font-semibold mb-1" style={{ color: "var(--foreground)" }}>Configure your session</p>
-        <p className="text-[12px] mb-5" style={{ color: "var(--muted)" }}>Each type has equal probability 1/3</p>
+        <p className="text-[12px] mb-5" style={{ color: "var(--muted)" }}>Type 1: 1/5 · Type 2: 2/5 · Type 3: 2/5</p>
         <div className="flex items-center gap-3">
           <input type="number" min="1" max="100" value={count}
             onChange={e => setCount(e.target.value)}
@@ -512,9 +512,9 @@ function IntroScreen({ onStart }) {
 
       <div className="flex gap-2 flex-wrap">
         {[
-          { label: "Type 1 · Δ < 0 · 1/3", color: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
-          { label: "Type 2 · Δ = 0 · 1/3", color: "#d97706", bg: "#fffbeb", border: "#fde68a" },
-          { label: "Type 3 · Δ > 0 · 1/3", color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
+          { label: "Type 1 · Δ < 0 · 1/5", color: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
+          { label: "Type 2 · Δ = 0 · 2/5", color: "#d97706", bg: "#fffbeb", border: "#fde68a" },
+          { label: "Type 3 · Δ > 0 · 2/5", color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
         ].map(({ label, color, bg, border }) => (
           <span key={label} className="text-[11px] px-3 py-1.5 rounded-full border font-medium"
             style={{ color, background: bg, borderColor: border }}>{label}</span>

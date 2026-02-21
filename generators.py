@@ -117,16 +117,21 @@ def _case3():
         l = generate_discrete_sample(E_small, pEs)
         e = generate_discrete_sample(Ep, pEp)
         p = generate_discrete_sample(Ep, pEp)
-        x1 = (-h - e * math.sqrt(p)) / l
-        x2 = (-h + e * math.sqrt(p)) / l
+        a = l ** 2
+        b = 2 * h * l
+        c = h ** 2 - p * e ** 2
+        return a, b, c, b ** 2 - 4 * a * c
 
     a, b, c = 1, -(x1 + x2), x1 * x2
     return a, b, c, b**2 - 4 * a * c
 
 def generate_exercise() -> tuple:
-    """Return one exercise as (a, b, c, delta, type_id) where type_id ∈ {1,2,3}."""
+    """Return one exercise as (a, b, c, delta, type_id) where type_id ∈ {1,2,3}.
+
+    Type probabilities:  1/5  (Δ < 0),  2/5  (Δ = 0),  2/5  (Δ > 0)
+    """
     E_set      = [1, 2, 3]
-    type_probs = [1 / len(E_set)] * len(E_set)
+    type_probs = [1/5, 2/5, 2/5]
     typ = generate_discrete_sample(E_set, type_probs)
     if   typ == 1: return (*_case1(), typ)
     elif typ == 2: return (*_case2(), typ)

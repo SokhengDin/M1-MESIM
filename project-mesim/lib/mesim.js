@@ -78,13 +78,17 @@ function generateCase3() {
     x1 = h / ll;
     x2 = k / ll;
   } else {
-    // Case 3.2 — irrational roots involving √p
+    // Case 3.2 — clear denominators so coefficients are integers:
+    //   roots are x = (-h ± e√p) / l
+    //   ⟹  ℓ²x² + 2hℓx + (h² - pe²) = 0
     const h = discreteSample(E, pe);
     const l = discreteSample(Esmall, pEs);
     const e = discreteSample(Ep, pEp);
     const p = discreteSample(Ep, pEp);
-    x1 = (-h - e * Math.sqrt(p)) / l;
-    x2 = (-h + e * Math.sqrt(p)) / l;
+    const a = l * l;
+    const b = 2 * h * l;
+    const c = h * h - p * e * e;
+    return { a, b, c, delta: b * b - 4 * a * c };
   }
   const a = 1, b = -(x1 + x2), c = x1 * x2;
   return { a, b, c, delta: b * b - 4 * a * c };
@@ -97,8 +101,8 @@ function generateCase3() {
  * Returns { a, b, c, delta, typ } where typ ∈ {1, 2, 3}.
  */
 export function generateExercise() {
-  // Uniform 1/3 each — matches updated project_app.py
-  const typ = discreteSample([1, 2, 3], [1/3, 1/3, 1/3]);
+  // Type 1: 1/5 (Δ<0),  Type 2: 2/5 (Δ=0),  Type 3: 2/5 (Δ>0)
+  const typ = discreteSample([1, 2, 3], [1/5, 2/5, 2/5]);
   const data = typ === 1 ? generateCase1()
              : typ === 2 ? generateCase2()
              :              generateCase3();

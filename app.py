@@ -498,11 +498,11 @@ class ProjectMESIMApp(ctk.CTk):
         # ── Type distribution pills ───────────────────────────────────────
         pill_row = ctk.CTkFrame(scroll, fg_color="transparent")
         pill_row.pack(anchor="w", pady=(0, 10))
-        self._pill(pill_row, "Type 1 · \u0394 < 0 · 33%",
+        self._pill(pill_row, "Type 1 · \u0394 < 0 · 20%",
                    fg=self._danger_bg(),  text_color=DANGER)
-        self._pill(pill_row, "Type 2 · \u0394 = 0 · 33%",
+        self._pill(pill_row, "Type 2 · \u0394 = 0 · 40%",
                    fg=self._warning_bg(), text_color=WARNING)
-        self._pill(pill_row, "Type 3 · \u0394 > 0 · 33%",
+        self._pill(pill_row, "Type 3 · \u0394 > 0 · 40%",
                    fg=self._success_bg(), text_color=SUCCESS)
 
     # ═════════════════════════════════════════════════════════════════════════

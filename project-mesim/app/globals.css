@@ -1,0 +1,28 @@
+@import "tailwindcss";
+@import "katex/dist/katex.min.css";
+
+/* Prevent Tailwind preflight from breaking KaTeX internal layout */
+.katex { font: normal 1.21em KaTeX_Main, Times New Roman, serif; line-height: 1.2; white-space: nowrap; }
+.katex * { box-sizing: content-box; }
+.katex .base { display: inline-block; }
+.katex .strut { display: inline-block; }
+.katex-display { display: block; text-align: center; margin: 0.5em 0; }
+.katex-display > .katex { display: inline-block; text-align: initial; }
+
+:root {
+  --background: #f4f4f5;   /* zinc-100 */
+  --foreground: #18181b;   /* zinc-900 */
+  --accent:     #e11d48;   /* rose-600 */
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, -apple-system, sans-serif;
+}

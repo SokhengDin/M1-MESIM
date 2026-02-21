@@ -26,3 +26,13 @@ body {
   color: var(--foreground);
   font-family: system-ui, -apple-system, sans-serif;
 }
+
+/* Sidebar: always visible and in-flow on desktop */
+@media (min-width: 768px) {
+  .sidebar-nav {
+    position: relative !important;
+    transform: translateX(0) !important;
+    z-index: auto !important;
+    height: 100% !important;
+  }
+}

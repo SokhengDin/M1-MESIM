@@ -47,14 +47,14 @@ function TimerRing({ timeLeft, total = 120 }) {
   const color = frac > 0.4 ? "#16a34a" : frac > 0.15 ? "#d97706" : "#dc2626";
   const m = Math.floor(timeLeft / 60), s = timeLeft % 60;
   return (
-    <div className="relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16">
+    <div className="relative flex items-center justify-center w-16 h-16">
       <svg className="absolute inset-0 -rotate-90" viewBox="0 0 64 64">
         <circle cx="32" cy="32" r={r} fill="none" stroke="#e4e4e7" strokeWidth="5" />
         <circle cx="32" cy="32" r={r} fill="none" stroke={color} strokeWidth="5"
           strokeDasharray={`${Math.max(0, frac * circ)} ${circ}`} strokeLinecap="round"
           style={{ transition: "stroke-dasharray 0.9s linear, stroke 0.4s" }} />
       </svg>
-      <span className="relative text-[10px] sm:text-[11px] font-bold tabular-nums text-zinc-700">
+      <span className="relative text-[11px] font-bold tabular-nums text-zinc-700">
         {m}:{String(s).padStart(2, "0")}
       </span>
     </div>
@@ -92,7 +92,7 @@ function Sidebar({ screen, exercises, currentIdx, scores, open, onClose }) {
 
   return (
     <>
-      {/* Mobile backdrop */}
+      {/* Mobile backdrop — only rendered when open on small screens */}
       {open && (
         <div
           className="fixed inset-0 z-40 bg-black/40 md:hidden"
@@ -100,13 +100,10 @@ function Sidebar({ screen, exercises, currentIdx, scores, open, onClose }) {
         />
       )}
 
-      <aside className={[
-        "fixed inset-y-0 left-0 z-50 flex flex-col bg-white border-r border-zinc-200 overflow-y-auto",
-        "w-[min(15rem,80vw)] min-w-[11rem]",
-        "transition-transform duration-200",
-        open ? "translate-x-0" : "-translate-x-full",
-        "md:relative md:translate-x-0 md:z-auto md:shrink-0 md:h-full",
-      ].join(" ")}>
+      <aside
+        className="sidebar-nav fixed inset-y-0 left-0 z-50 flex flex-col bg-white border-r border-zinc-200 w-60 shrink-0 h-full overflow-y-auto transition-transform duration-200"
+        style={{ transform: open ? "translateX(0)" : "translateX(-100%)" }}
+      >
         {/* Logo */}
         <div className="flex flex-col items-center pt-8 pb-1 px-4">
           <Image src="/logo.svg" alt="ENSIIE" width={138} height={55} className="object-contain" priority />
@@ -256,17 +253,17 @@ function GenerationDetails() {
       {/* Trigger button */}
       <button
         onClick={() => setOpen(true)}
-        className="w-full flex items-center justify-between px-4 sm:px-5 py-3.5 rounded-2xl
+        className="w-full flex items-center justify-between px-5 py-3.5 rounded-2xl
                    bg-white border border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50
                    transition-all group"
       >
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2.5">
           <span className="text-[13px] font-semibold text-zinc-700">How exercises are generated</span>
           <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-400 font-medium border border-zinc-200">
             Inverse-CDF method
           </span>
         </div>
-        <svg className="w-4 h-4 text-zinc-400 group-hover:text-zinc-600 transition-colors shrink-0 ml-2"
+        <svg className="w-4 h-4 text-zinc-400 group-hover:text-zinc-600 transition-colors"
           fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 110 20A10 10 0 0112 2z" />
         </svg>
@@ -275,25 +272,25 @@ function GenerationDetails() {
       {/* Modal backdrop + panel */}
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
           style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
           onClick={() => setOpen(false)}
         >
           <div
-            className="bg-white w-full rounded-t-2xl sm:rounded-2xl shadow-2xl sm:max-w-2xl max-h-[92dvh] sm:max-h-[85vh] flex flex-col overflow-hidden"
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90dvh] flex flex-col overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
             {/* Modal header */}
-            <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-zinc-100 shrink-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[14px] sm:text-[15px] font-bold text-zinc-900">How exercises are generated</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-400 font-medium border border-zinc-200 hidden sm:inline">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <span className="text-[15px] font-bold text-zinc-900">How exercises are generated</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-400 font-medium border border-zinc-200">
                   Inverse-CDF method
                 </span>
               </div>
               <button onClick={() => setOpen(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400
-                           hover:bg-zinc-100 hover:text-zinc-700 transition-colors shrink-0">
+                className="w-7 h-7 rounded-full flex items-center justify-center text-zinc-400
+                           hover:bg-zinc-100 hover:text-zinc-700 transition-colors">
                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -301,9 +298,9 @@ function GenerationDetails() {
             </div>
 
             {/* Modal body — scrollable */}
-            <div className="overflow-y-auto px-4 sm:px-6 py-4 sm:py-5">
+            <div className="overflow-y-auto px-6 py-5">
               {/* Inverse-CDF core idea */}
-              <div className="bg-zinc-50 border border-zinc-100 rounded-xl px-3 sm:px-4 py-3 text-[12px] text-zinc-600 leading-relaxed mb-4">
+              <div className="bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-3 text-[12px] text-zinc-600 leading-relaxed mb-4">
                 <span className="font-semibold text-zinc-800">Core idea — Inverse-CDF sampling:&ensp;</span>
                 To sample from a discrete distribution with values <KTex tex="(a_1,\ldots,a_n)" /> and probabilities <KTex tex="(p_1,\ldots,p_n)" />,
                 compute the CDF <KTex tex="F_k = p_1+\cdots+p_k" />, draw <KTex tex="U\sim\mathcal{U}(]0,1[)" />,
@@ -316,36 +313,36 @@ function GenerationDetails() {
                 <div className="flex border-b border-zinc-200 bg-zinc-50">
                   {[1, 2, 3].map(t => (
                     <button key={t} onClick={() => setTab(t)}
-                      className={`flex-1 py-2.5 text-[11px] sm:text-[12px] font-semibold transition-all border-b-2
+                      className={`flex-1 py-2.5 text-[12px] font-semibold transition-all border-b-2
                         ${tab === t
                           ? `bg-white border-current ${cases[t].color}`
                           : `border-transparent text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100`}`}>
                       Type {t}&ensp;
-                      <span className={`text-[9px] sm:text-[10px] font-normal ${tab === t ? cases[t].color : "text-zinc-300"}`}>
-                        {t === 1 ? "Δ<0" : t === 2 ? "Δ=0" : "Δ>0"}
+                      <span className={`text-[10px] font-normal ${tab === t ? cases[t].color : "text-zinc-300"}`}>
+                        {t === 1 ? "Δ < 0" : t === 2 ? "Δ = 0" : "Δ > 0"}
                       </span>
                     </button>
                   ))}
                   <button onClick={() => setTab("algo")}
-                    className={`flex-1 py-2.5 text-[11px] sm:text-[12px] font-semibold transition-all border-b-2
+                    className={`flex-1 py-2.5 text-[12px] font-semibold transition-all border-b-2
                       ${tab === "algo"
                         ? "bg-white border-indigo-500 text-indigo-600"
                         : "border-transparent text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100"}`}>
-                    Algo
+                    Algorithm
                   </button>
                 </div>
 
                 {/* Tab content — case rows */}
                 {tab !== "algo" && c && (
                   <div>
-                    <div className={`px-3 sm:px-4 py-2 ${c.bg} border-b ${c.border}`}>
+                    <div className={`px-4 py-2 ${c.bg} border-b ${c.border}`}>
                       <span className={`text-[11px] font-bold uppercase tracking-widest ${c.color}`}>{c.label}</span>
                     </div>
                     <div className="divide-y divide-zinc-100">
                       {c.rows.map(({ label, content }) => (
-                        <div key={label} className="flex gap-3 sm:gap-4 px-3 sm:px-4 py-3 text-[12px] leading-relaxed bg-white">
-                          <span className="w-16 sm:w-20 shrink-0 font-semibold text-zinc-400 pt-0.5">{label}</span>
-                          <span className="text-zinc-700 flex flex-wrap items-center gap-x-1.5 gap-y-1 min-w-0">{content}</span>
+                        <div key={label} className="flex gap-4 px-4 py-3 text-[12px] leading-relaxed bg-white">
+                          <span className="w-20 shrink-0 font-semibold text-zinc-400 pt-0.5">{label}</span>
+                          <span className="text-zinc-700 flex flex-wrap items-center gap-x-1.5 gap-y-1">{content}</span>
                         </div>
                       ))}
                     </div>
@@ -355,20 +352,20 @@ function GenerationDetails() {
                 {/* Tab content — algorithm */}
                 {tab === "algo" && (
                   <div>
-                    <div className="bg-zinc-800 px-3 sm:px-4 py-2.5">
+                    <div className="bg-zinc-800 px-4 py-2.5">
                       <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">Inverse-CDF Sampler</span>
                     </div>
                     <div className="grid grid-cols-2 divide-x divide-zinc-100 border-b border-zinc-100">
-                      <div className="px-3 sm:px-4 py-2.5 bg-zinc-50 text-[11px] sm:text-[12px] flex items-center gap-2 flex-wrap">
+                      <div className="px-4 py-2.5 bg-zinc-50 text-[12px] flex items-center gap-2">
                         <span className="font-bold text-rose-500 shrink-0">Input</span>
                         <span className="text-zinc-500">values <KTex tex="(a_1,\ldots,a_n)" />, probs <KTex tex="(p_1,\ldots,p_n)" /></span>
                       </div>
-                      <div className="px-3 sm:px-4 py-2.5 bg-zinc-50 text-[11px] sm:text-[12px] flex items-center gap-2 flex-wrap">
+                      <div className="px-4 py-2.5 bg-zinc-50 text-[12px] flex items-center gap-2">
                         <span className="font-bold text-indigo-500 shrink-0">Output</span>
                         <span className="text-zinc-500">sampled value <KTex tex="a_k" /></span>
                       </div>
                     </div>
-                    <table className="w-full text-[11px] sm:text-[12px]">
+                    <table className="w-full text-[12px]">
                       <tbody className="divide-y divide-zinc-100">
                         {[
                           { step: "1", keyword: null,     line: <span>Compute CDF:&ensp;<KTex tex="F_k \leftarrow p_1 + \cdots + p_k" />&ensp;for <KTex tex="k = 1, \ldots, n" /></span> },
@@ -379,12 +376,12 @@ function GenerationDetails() {
                           { step: "5", keyword: "return", line: <KTex tex="a_k" /> },
                         ].map(({ step, keyword, line, indent }, i) => (
                           <tr key={i} className={indent ? "bg-zinc-50" : "bg-white"}>
-                            <td className="w-6 sm:w-8 px-2 sm:px-4 py-2.5 text-zinc-300 font-mono text-center select-none">{step}</td>
-                            <td className="px-2 py-2.5 w-12 sm:w-16">
+                            <td className="w-8 px-4 py-2.5 text-zinc-300 font-mono text-center select-none">{step}</td>
+                            <td className="px-2 py-2.5 w-16">
                               {keyword && <span className="text-indigo-500 font-semibold font-mono">{keyword}</span>}
                             </td>
                             <td className="px-2 py-2.5 text-zinc-700">
-                              <span className={`flex items-center gap-1 flex-wrap ${indent ? "pl-4 sm:pl-5" : ""}`}>{line}</span>
+                              <span className={`flex items-center gap-1 flex-wrap ${indent ? "pl-5" : ""}`}>{line}</span>
                             </td>
                           </tr>
                         ))}
@@ -407,15 +404,15 @@ function IntroScreen({ onStart }) {
   const go = () => { const n = parseInt(count); if (n > 0) onStart(n); };
 
   return (
-    <div className="flex flex-col gap-5 max-w-2xl">
+    <div className="flex flex-col gap-5">
       <div>
-        <h1 className="text-[20px] sm:text-[22px] font-bold text-zinc-900">Quadratic Equation Trainer</h1>
+        <h1 className="text-[22px] font-bold text-zinc-900">Quadratic Equation Trainer</h1>
         <p className="text-[13px] text-zinc-400 mt-0.5">Practice solving ax² + bx + c = 0 step by step</p>
         <div className="mt-4 h-px bg-zinc-200" />
       </div>
 
       {/* Theory */}
-      <div className="bg-white rounded-2xl border border-zinc-200 p-4 sm:p-6 flex flex-col gap-5">
+      <div className="bg-white rounded-2xl border border-zinc-200 p-6 flex flex-col gap-5">
         <div className="bg-rose-50 border border-rose-100 rounded-xl py-5 flex justify-center overflow-x-auto">
           <KTex tex="ax^2 + bx + c = 0" block />
         </div>
@@ -431,10 +428,10 @@ function IntroScreen({ onStart }) {
             { tex: "\\Delta = 0", desc: "One solution:  x = −b / (2a)",             c: "text-amber-600", bg: "bg-amber-50 border-amber-100" },
             { tex: "\\Delta > 0", desc: "Two solutions:  x₁,₂ = (−b ± √Δ) / (2a)", c: "text-green-600", bg: "bg-green-50 border-green-100" },
           ].map(({ tex, desc, c, bg }) => (
-            <div key={tex} className={`flex items-center gap-3 sm:gap-4 rounded-xl border px-3 sm:px-4 py-3 ${bg}`}>
-              <span className={`font-bold w-14 sm:w-16 shrink-0 ${c}`}><KTex tex={tex} /></span>
+            <div key={tex} className={`flex items-center gap-4 rounded-xl border px-4 py-3 ${bg}`}>
+              <span className={`font-bold w-16 shrink-0 ${c}`}><KTex tex={tex} /></span>
               <span className="text-zinc-300 text-sm">→</span>
-              <span className="text-[12px] sm:text-[13px] text-zinc-700">{desc}</span>
+              <span className="text-[13px] text-zinc-700">{desc}</span>
             </div>
           ))}
         </div>
@@ -444,18 +441,18 @@ function IntroScreen({ onStart }) {
       <GenerationDetails />
 
       {/* Config */}
-      <div className="bg-white rounded-2xl border border-zinc-200 p-4 sm:p-6">
+      <div className="bg-white rounded-2xl border border-zinc-200 p-6">
         <p className="text-[14px] font-semibold text-zinc-800 mb-1">Configure your session</p>
         <p className="text-[12px] text-zinc-400 mb-5">Each type has equal probability 1/3</p>
         <div className="flex items-center gap-3">
           <input type="number" min="1" max="100" value={count}
             onChange={e => setCount(e.target.value)}
             onKeyDown={e => e.key === "Enter" && go()}
-            className="w-20 sm:w-24 h-11 text-center rounded-xl border border-zinc-200 bg-zinc-50
+            className="w-24 h-11 text-center rounded-xl border border-zinc-200 bg-zinc-50
                        text-zinc-900 text-[15px] font-semibold outline-none
                        focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition" />
           <button onClick={go}
-            className="h-11 px-4 sm:px-5 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-[0.97]
+            className="h-11 px-5 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-[0.97]
                        text-white text-[13px] font-bold flex items-center gap-2 transition-all">
             Start Quiz <ArrowRight size={15} />
           </button>
@@ -497,10 +494,10 @@ function QuizScreen({ exercise, idx, total, onSubmit, onSkip }) {
   }, [submit]);
 
   return (
-    <div className="flex flex-col gap-5 max-w-2xl">
-      <div className="flex items-start justify-between gap-3">
+    <div className="flex flex-col gap-5">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-[18px] sm:text-[20px] font-bold text-zinc-900">Exercise {idx} / {total}</h2>
+          <h2 className="text-[20px] font-bold text-zinc-900">Exercise {idx} / {total}</h2>
           <p className="text-[12px] text-zinc-400 mt-0.5">Compute Δ then count the solutions</p>
         </div>
         <div className="bg-white border border-zinc-200 rounded-2xl p-2 shadow-sm shrink-0">
@@ -514,35 +511,33 @@ function QuizScreen({ exercise, idx, total, onSubmit, onSkip }) {
       </div>
 
       {/* Equation */}
-      <div className="bg-rose-50 border border-rose-100 rounded-2xl px-4 sm:px-6 py-5 sm:py-6">
+      <div className="bg-rose-50 border border-rose-100 rounded-2xl px-6 py-6">
         <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-rose-300 mb-4">Solve</p>
         <div className="flex justify-center py-2 overflow-x-auto">
           <KTex tex={toLatex(a, b, c)} block />
         </div>
-        <div className="mt-4 flex gap-2 flex-wrap">
+        <div className="mt-4 flex gap-2">
           <span className="text-[11px] px-2.5 py-1 rounded-full bg-white border border-rose-100 text-zinc-500">Type {typ}</span>
           <span className="text-[11px] px-2.5 py-1 rounded-full bg-white border border-rose-100 text-zinc-500">1 pt total</span>
         </div>
       </div>
 
       {/* Inputs */}
-      <div className="bg-white rounded-2xl border border-zinc-200 p-4 sm:p-6 flex flex-col gap-3">
+      <div className="bg-white rounded-2xl border border-zinc-200 p-6 flex flex-col gap-3">
         <p className="text-[13px] font-semibold text-zinc-800 mb-1">Your answers</p>
         {[
           { label: "Discriminant", katex: "\\Delta", pts: "0.5 pt", val: dVal, set: setDVal, ph: "e.g. −3.25" },
-          { label: "# of solutions (0, 1 or 2)", pts: "0.5 pt", val: nVal, set: setNVal, ph: "0, 1 or 2" },
+          { label: "Number of solutions (0, 1 or 2)", pts: "0.5 pt", val: nVal, set: setNVal, ph: "0, 1 or 2" },
         ].map(({ label, katex: ktx, pts, val, set, ph }) => (
-          <label key={label} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 bg-zinc-50 border border-zinc-100 rounded-xl px-3 sm:px-4 py-3 cursor-text">
+          <label key={label} className="flex items-center gap-3 bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-3 cursor-text">
             <span className="flex-1 text-[13px] text-zinc-700 flex items-center gap-1 select-none">
               {label}{ktx && <KTex tex={ktx} />} ?
             </span>
-            <div className="flex items-center gap-2 sm:gap-3">
-              <span className="text-[10px] text-zinc-400 border border-zinc-200 rounded-full px-2 py-0.5 shrink-0">{pts}</span>
-              <input value={val} onChange={e => set(e.target.value)} onKeyDown={e => e.key === "Enter" && submit()}
-                placeholder={ph}
-                className="w-full sm:w-28 h-9 text-center rounded-lg border border-zinc-200 bg-white text-zinc-900 text-[13px]
-                           outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition" />
-            </div>
+            <span className="text-[10px] text-zinc-400 border border-zinc-200 rounded-full px-2 py-0.5 shrink-0">{pts}</span>
+            <input value={val} onChange={e => set(e.target.value)} onKeyDown={e => e.key === "Enter" && submit()}
+              placeholder={ph}
+              className="w-32 h-9 text-center rounded-lg border border-zinc-200 bg-white text-zinc-900 text-[13px]
+                         outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition" />
           </label>
         ))}
       </div>
@@ -576,41 +571,41 @@ function CorrectionScreen({ exercise, exScore, runningScore, exerciseNum, remain
   const BadgeIcon = exScore === 1 ? Check : exScore === 0.5 ? Minus : X;
 
   return (
-    <div className="flex flex-col gap-5 max-w-2xl">
+    <div className="flex flex-col gap-5">
       <div>
-        <div className="flex items-start sm:items-center justify-between gap-2 flex-wrap">
-          <h2 className="text-[18px] sm:text-[20px] font-bold text-zinc-900">Exercise {exerciseNum} · Correction</h2>
-          <span className={`inline-flex items-center gap-1.5 text-[12px] font-bold px-3 py-1.5 rounded-full border shrink-0 ${badge}`}>
+        <div className="flex items-center justify-between">
+          <h2 className="text-[20px] font-bold text-zinc-900">Exercise {exerciseNum} · Correction</h2>
+          <span className={`inline-flex items-center gap-1.5 text-[12px] font-bold px-3 py-1.5 rounded-full border ${badge}`}>
             <BadgeIcon size={12} /> {exScore} / 1 pt
           </span>
         </div>
         <div className="mt-4 h-px bg-zinc-200" />
       </div>
 
-      <div className="bg-rose-50 border border-rose-100 rounded-2xl px-4 sm:px-6 py-5 sm:py-6">
+      <div className="bg-rose-50 border border-rose-100 rounded-2xl px-6 py-6">
         <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-rose-300 mb-4">Equation</p>
         <div className="flex justify-center overflow-x-auto">
           <KTex tex={toLatex(a, b, c)} block />
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-zinc-200 p-4 sm:p-6">
+      <div className="bg-white rounded-2xl border border-zinc-200 p-6">
         <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-400 mb-4">Solution</p>
         <div className="flex flex-col gap-2">
           {[
             { label: "Discriminant", ktex: "\\Delta =", value: String(fmt4(delta)) },
-            { label: "# of solutions", value: String(nsol) },
+            { label: "Number of solutions", value: String(nsol) },
             ...(nsol === 1 ? [{ label: "Solution", value: `x₀ = ${sols[0]}`, green: true }] : []),
             ...(nsol === 2 ? [
               { label: "Solutions", value: `x₁ = ${sols[0]}`, green: true },
               { label: "",          value: `x₂ = ${sols[1]}`, green: true },
             ] : []),
           ].map(({ label, ktex, value, green }, i) => (
-            <div key={i} className="flex items-center gap-3 sm:gap-4 bg-zinc-50 border border-zinc-100 rounded-xl px-3 sm:px-4 py-3">
-              <span className="text-[12px] text-zinc-500 w-28 sm:w-44 shrink-0 flex items-center gap-1">
+            <div key={i} className="flex items-center gap-4 bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-3">
+              <span className="text-[12px] text-zinc-500 w-44 shrink-0 flex items-center gap-1">
                 {label}{ktex && <KTex tex={ktex} />}
               </span>
-              <span className={`font-mono text-[13px] font-semibold min-w-0 break-all ${green ? "text-green-600" : "text-zinc-800"}`}>
+              <span className={`font-mono text-[13px] font-semibold ${green ? "text-green-600" : "text-zinc-800"}`}>
                 {value}
               </span>
             </div>
@@ -618,7 +613,7 @@ function CorrectionScreen({ exercise, exScore, runningScore, exerciseNum, remain
         </div>
       </div>
 
-      <p className="text-[12px] text-zinc-400 flex items-center gap-1.5 flex-wrap">
+      <p className="text-[12px] text-zinc-400 flex items-center gap-1.5">
         <Clock size={12} />
         Running total: <span className="font-semibold text-zinc-600">{runningScore}</span>
         · {remaining} exercise{remaining !== 1 ? "s" : ""} remaining
@@ -644,21 +639,21 @@ function SummaryScreen({ score, total, onRestart }) {
                 { verdict: "Keep practicing!",  color: "text-red-600"   };
 
   return (
-    <div className="flex flex-col gap-6 max-w-2xl">
+    <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-[20px] sm:text-[22px] font-bold text-zinc-900">Quiz Complete</h1>
+        <h1 className="text-[22px] font-bold text-zinc-900">Quiz Complete</h1>
         <p className="text-[13px] text-zinc-400 mt-0.5">Here&apos;s how you did</p>
         <div className="mt-4 h-px bg-zinc-200" />
       </div>
 
       <div className="flex flex-col items-center gap-4 py-2">
         <ScoreRing score={score} total={total} />
-        <p className={`text-[20px] sm:text-[22px] font-bold ${color}`}>{verdict}</p>
+        <p className={`text-[22px] font-bold ${color}`}>{verdict}</p>
       </div>
 
-      <div className="bg-white rounded-2xl border border-zinc-200 p-4 sm:p-6 flex flex-col gap-2">
+      <div className="bg-white rounded-2xl border border-zinc-200 p-6 flex flex-col gap-2">
         {[["Total score", `${score} / ${total}`], ["Percentage", `${pct.toFixed(1)} %`], ["Exercises done", String(total)]].map(([l, v]) => (
-          <div key={l} className="flex items-center justify-between bg-zinc-50 border border-zinc-100 rounded-xl px-3 sm:px-4 py-3">
+          <div key={l} className="flex items-center justify-between bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-3">
             <span className="text-[13px] text-zinc-500">{l}</span>
             <span className="text-[13px] font-bold text-zinc-900">{v}</span>
           </div>
@@ -683,24 +678,24 @@ function SummaryScreen({ score, total, onRestart }) {
 
 // ── Root ──────────────────────────────────────────────────────────────────────
 export default function Home() {
-  const [screen,     setScreen]     = useState("intro");
-  const [exercises,  setExercises]  = useState([]);
-  const [currentIdx, setCurrentIdx] = useState(0);
-  const [scores,     setScores]     = useState({});
-  const [lastScore,  setLastScore]  = useState(0);
+  const [screen,      setScreen]     = useState("intro");
+  const [exercises,   setExercises]  = useState([]);
+  const [currentIdx,  setCurrentIdx] = useState(0);
+  const [scores,      setScores]     = useState({});
+  const [lastScore,   setLastScore]  = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const totalScore = Object.values(scores).reduce((s, v) => s + v, 0);
 
-  const handleStart = (n) => { setExercises(generateExercises(n)); setCurrentIdx(0); setScores({}); setScreen("quiz"); };
-  const handleSubmit = (d, n) => {
+  const handleStart   = (n) => { setExercises(generateExercises(n)); setCurrentIdx(0); setScores({}); setScreen("quiz"); };
+  const handleSubmit  = (d, n) => {
     const pts = scoreAnswer(exercises[currentIdx], d, n);
     setScores(s => ({ ...s, [currentIdx]: pts }));
     setLastScore(pts);
     setScreen("correction");
   };
-  const handleSkip = () => { setScores(s => ({ ...s, [currentIdx]: 0 })); setLastScore(0); setScreen("correction"); };
-  const handleNext = () => {
+  const handleSkip    = () => { setScores(s => ({ ...s, [currentIdx]: 0 })); setLastScore(0); setScreen("correction"); };
+  const handleNext    = () => {
     const next = currentIdx + 1;
     if (next >= exercises.length) setScreen("summary");
     else { setCurrentIdx(next); setScreen("quiz"); }
@@ -710,7 +705,7 @@ export default function Home() {
   const ex = exercises[currentIdx];
 
   return (
-    <div className="flex min-h-screen bg-zinc-100">
+    <div className="flex h-screen bg-zinc-100">
       <Sidebar
         screen={screen}
         exercises={exercises}
@@ -720,9 +715,9 @@ export default function Home() {
         onClose={() => setSidebarOpen(false)}
       />
 
-      <div className="flex flex-col flex-1 min-w-0">
-        {/* Mobile top bar */}
-        <header className="md:hidden flex items-center gap-3 px-4 py-3 bg-white border-b border-zinc-200 sticky top-0 z-30">
+      <div className="flex flex-col flex-1 min-w-0 h-full">
+        {/* Mobile-only top bar with hamburger */}
+        <header className="md:hidden flex items-center gap-3 px-4 py-3 bg-white border-b border-zinc-200 shrink-0">
           <button
             onClick={() => setSidebarOpen(true)}
             className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-zinc-100 transition text-zinc-500"
@@ -733,8 +728,8 @@ export default function Home() {
           <span className="text-[13px] font-bold text-zinc-700 tracking-wide">MESIM</span>
         </header>
 
-        <main className="flex-1 overflow-y-auto">
-          <div className="px-4 sm:px-8 py-6 sm:py-10">
+        <main className="flex-1 h-full overflow-y-auto">
+          <div className="px-8 py-10">
             {screen === "intro"      && <IntroScreen onStart={handleStart} />}
             {screen === "quiz"       && ex && <QuizScreen key={currentIdx} exercise={ex} idx={currentIdx + 1} total={exercises.length} onSubmit={handleSubmit} onSkip={handleSkip} />}
             {screen === "correction" && ex && <CorrectionScreen exercise={ex} exScore={lastScore} runningScore={Math.round(totalScore * 100) / 100} exerciseNum={currentIdx + 1} remaining={exercises.length - currentIdx - 1} onNext={handleNext} isLast={currentIdx + 1 >= exercises.length} />}

@@ -1,0 +1,32 @@
+# ── Next.js ──────────────────────────────────────────────────────────────────
+project-mesim/.next/
+project-mesim/out/
+project-mesim/node_modules/
+project-mesim/.cache/
+
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+
+# ── Stats file written at runtime ────────────────────────────────────────────
+~/.mesim_stats.json
+
+# ── OS / editor ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ── Environment & secrets ─────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Docker ───────────────────────────────────────────────────────────────────
+docker-compose.override.yml

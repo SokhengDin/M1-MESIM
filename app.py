@@ -1,10 +1,31 @@
-import customtkinter as ctk
-import numpy as np
-import math
-import tkinter as tk
-import os, io, json
+"""
+app.py
+──────
+CustomTkinter UI for the MESIM quadratic-equation trainer.
+All mathematical logic lives in generators.py.
 
-# ─── PALETTE (light / dark mirrors the web CSS variables) ────────────────────
+Entry point: ProjectMESIMApp  (ctk.CTk subclass)
+"""
+
+import math
+import os
+import io
+import tkinter as tk
+import customtkinter as ctk
+
+from generators import (
+    generate_exercise,
+    format_equation,
+    load_stats,
+    save_stats,
+)
+
+# Semantic colours shared between palette-agnostic widgets
+SUCCESS = "#16a34a"   # green-600
+WARNING = "#d97706"   # amber-600
+DANGER  = "#dc2626"   # red-600
+
+# ─── PALETTE (mirrors the web CSS variables exactly) ─────────────────────────
 _LIGHT = dict(
     BG       = "#f4f4f5",   # --background
     FG       = "#18181b",   # --foreground
@@ -42,184 +63,87 @@ _DARK = dict(
     MUTED_BG = "#3f3f46",
 )
 
-SUCCESS    = "#16a34a"
 SUCCESS_BG_L = "#f0fdf4"
 SUCCESS_BG_D = "#14532d"
-WARNING    = "#d97706"
 WARNING_BG_L = "#fffbeb"
 WARNING_BG_D = "#451a03"
-DANGER     = "#dc2626"
 DANGER_BG_L  = "#fef2f2"
 DANGER_BG_D  = "#450a0a"
 
-# ─── STATS PERSISTENCE ───────────────────────────────────────────────────────
-STATS_PATH = os.path.expanduser("~/.mesim_stats.json")
-
-def load_stats():
-    try:
-        with open(STATS_PATH) as f:
-            return json.load(f)
-    except Exception:
-        return {"sessions": 0, "total_score": 0.0, "total_exercises": 0, "best_pct": 0.0}
-
-def save_stats(score, total):
-    s = load_stats()
-    s["sessions"]        += 1
-    s["total_score"]     += score
-    s["total_exercises"] += total
-    pct = (score / total * 100) if total else 0
-    s["best_pct"] = max(s["best_pct"], pct)
-    with open(STATS_PATH, "w") as f:
-        json.dump(s, f)
-
-# ─── HELPER: discrete inverse-CDF sampler ────────────────────────────────────
-def generate_discrete_sample(values, probs, N=1):
-    cdf, cumul = [], 0.0
-    for p in probs:
-        cumul += p
-        cdf.append(cumul)
-    samples = []
-    for _ in range(N):
-        U, k = np.random.rand(), 0
-        while k < len(values) - 1 and U > cdf[k]:
-            k += 1
-        samples.append(values[k])
-    return samples[0] if N == 1 else np.array(samples)
-
-def format_equation(a, b, c):
-    a, b, c = round(a, 4), round(b, 4), round(c, 4)
-    def fmt(coef, var, first=False):
-        if coef == 0: return ""
-        if first:
-            if coef == 1  and var: return var
-            if coef == -1 and var: return f"-{var}"
-            return f"{coef}{var}"
-        if coef == 1  and var: return f" + {var}"
-        if coef == -1 and var: return f" - {var}"
-        if coef > 0:           return f" + {coef}{var}"
-        return f" - {abs(coef)}{var}"
-    return fmt(a, "x\u00b2", first=True) + fmt(b, "x") + fmt(c, "") + " = 0"
-
-# ─── EXERCISE GENERATORS ─────────────────────────────────────────────────────
-def generate_discrete_case1():
-    E       = [i for i in range(-9, 10) if i != 0]
-    E_small = [1, 2, 3]
-    pe = [1/len(E)] * len(E)
-    ps = [1/len(E_small)] * len(E_small)
-    a = generate_discrete_sample(E, pe)
-    b = generate_discrete_sample(E, pe)
-    e = generate_discrete_sample(E_small, ps)
-    c = (b**2 + e) / (4 * a)
-    return a, b, c, b**2 - 4*a*c
-
-def generate_discrete_case2():
-    E  = [i for i in range(-9, 10) if i != 0]
-    Ep = list(range(1, 10))
-    pe = [1/len(E)] * len(E)
-    pl = [1/2, 1/36, 1/36, 1/6, 1/36, 1/36, 1/36, 1/36, 1/6]
-    e   = generate_discrete_sample(E, pe)
-    ell = generate_discrete_sample(Ep, pl)
-    x0  = e / math.sqrt(ell)
-    a, b, c = 1, -2*x0, x0**2
-    return a, b, c, b**2 - 4*a*c
-
-def generate_discrete_case3():
-    E       = [i for i in range(-9, 10) if i != 0]
-    Ep      = list(range(1, 10))
-    E_small = [i for i in range(-3, 4) if i != 0]
-    pe  = [1/len(E)] * len(E)
-    pEp = [1/len(Ep)] * len(Ep)
-    pEs = [1/len(E_small)] * len(E_small)
-    pZ  = [1/2 if i == 1 else 1/(2*17) for i in E]
-    if generate_discrete_sample([1, 2], [1/2, 1/2]) == 1:
-        h  = generate_discrete_sample(E, pe)
-        k  = generate_discrete_sample(E, pe)
-        ll = generate_discrete_sample(E, pZ)
-        x1, x2 = h/ll, k/ll
-    else:
-        h = generate_discrete_sample(E, pe)
-        l = generate_discrete_sample(E_small, pEs)
-        e = generate_discrete_sample(Ep, pEp)
-        p = generate_discrete_sample(Ep, pEp)
-        x1 = (-h - e*math.sqrt(p)) / l
-        x2 = (-h + e*math.sqrt(p)) / l
-    a, b, c = 1, -(x1+x2), x1*x2
-    return a, b, c, b**2 - 4*a*c
-
-def generate_exercise():
-    E_set = [1, 2, 3]
-    type_probs = [1/len(E_set)] * len(E_set)
-    typ = generate_discrete_sample(E_set, type_probs)
-    if   typ == 1: return (*generate_discrete_case1(), typ)
-    elif typ == 2: return (*generate_discrete_case2(), typ)
-    else:          return (*generate_discrete_case3(), typ)
-
 # ─── REUSABLE WIDGETS ────────────────────────────────────────────────────────
+
 class Card(ctk.CTkFrame):
+    """White card with a subtle border — matches web <Card>."""
     def __init__(self, master, app, **kw):
-        self._app = app
-        kw.setdefault("fg_color", app.c("SURFACE"))
+        kw.setdefault("fg_color",     app.c("SURFACE"))
         kw.setdefault("corner_radius", 14)
-        kw.setdefault("border_width", 1)
-        kw.setdefault("border_color", app.c("BORDER"))
+        kw.setdefault("border_width",  1)
+        kw.setdefault("border_color",  app.c("BORDER"))
         super().__init__(master, **kw)
+
 
 class TintCard(ctk.CTkFrame):
+    """Accent-tinted card (rose-50 / dark rose) — matches web <TintCard>."""
     def __init__(self, master, app, **kw):
-        kw.setdefault("fg_color", app.c("ACCENT_LT"))
+        kw.setdefault("fg_color",     app.c("ACCENT_LT"))
         kw.setdefault("corner_radius", 14)
-        kw.setdefault("border_width", 1)
-        kw.setdefault("border_color", "#fecdd3" if not app.dark_mode else "#7f1d1d")
+        kw.setdefault("border_width",  1)
+        kw.setdefault("border_color",  "#fecdd3" if not app.dark_mode else "#7f1d1d")
         super().__init__(master, **kw)
+
 
 class PrimaryBtn(ctk.CTkButton):
+    """Rose filled button."""
     def __init__(self, master, app, **kw):
-        kw.setdefault("fg_color", app.c("ACCENT"))
+        kw.setdefault("fg_color",    app.c("ACCENT"))
         kw.setdefault("hover_color", app.c("ACCENT_H"))
-        kw.setdefault("text_color", "#ffffff")
+        kw.setdefault("text_color",  "#ffffff")
         kw.setdefault("corner_radius", 10)
-        kw.setdefault("font", ctk.CTkFont(size=14, weight="bold"))
+        kw.setdefault("font",   ctk.CTkFont(size=14, weight="bold"))
         kw.setdefault("height", 44)
         super().__init__(master, **kw)
+
 
 class SecondaryBtn(ctk.CTkButton):
+    """Outlined ghost button."""
     def __init__(self, master, app, **kw):
-        kw.setdefault("fg_color", app.c("SURFACE"))
+        kw.setdefault("fg_color",    app.c("SURFACE"))
         kw.setdefault("hover_color", app.c("MUTED_BG"))
-        kw.setdefault("text_color", app.c("TEXT_MED"))
+        kw.setdefault("text_color",  app.c("TEXT_MED"))
         kw.setdefault("border_width", 1)
         kw.setdefault("border_color", app.c("BORDER"))
         kw.setdefault("corner_radius", 10)
-        kw.setdefault("font", ctk.CTkFont(size=14))
+        kw.setdefault("font",   ctk.CTkFont(size=14))
         kw.setdefault("height", 44)
         super().__init__(master, **kw)
 
+
 class ModernEntry(ctk.CTkEntry):
+    """Text entry that can flash its border red on validation error."""
     def __init__(self, master, app, **kw):
         self._app = app
-        kw.setdefault("fg_color", app.c("SURFACE"))
-        kw.setdefault("border_color", app.c("BORDER"))
-        kw.setdefault("border_width", 1)
-        kw.setdefault("text_color", app.c("FG"))
+        kw.setdefault("fg_color",              app.c("SURFACE"))
+        kw.setdefault("border_color",          app.c("BORDER"))
+        kw.setdefault("border_width",          1)
+        kw.setdefault("text_color",            app.c("FG"))
         kw.setdefault("placeholder_text_color", app.c("TEXT_LOW"))
-        kw.setdefault("corner_radius", 10)
-        kw.setdefault("font", ctk.CTkFont(size=15))
+        kw.setdefault("corner_radius",         10)
+        kw.setdefault("font",   ctk.CTkFont(size=15))
         kw.setdefault("height", 44)
         super().__init__(master, **kw)
 
     def flash_error(self):
-        """Flash red border for invalid input feedback."""
         orig = self._app.c("BORDER")
         self.configure(border_color=DANGER)
         self.after(600, lambda: self.configure(border_color=orig))
 
+
 class TimerArc(tk.Canvas):
-    """Circular countdown arc."""
+    """Circular countdown arc drawn on a plain tk.Canvas."""
     def __init__(self, master, app, size=76, **kw):
         self._app = app
-        bg = app.c("SURFACE")
         super().__init__(master, width=size, height=size,
-                         bg=bg, highlightthickness=0, **kw)
+                         bg=app.c("SURFACE"), highlightthickness=0, **kw)
         self.size = size
         self._draw(1.0, "2:00")
 
@@ -229,16 +153,22 @@ class TimerArc(tk.Canvas):
 
     def _draw(self, fraction, label):
         s, p = self.size, 8
+        # track ring
         self.create_arc(p, p, s-p, s-p, start=90, extent=360,
                         outline=self._app.c("MUTED_BG"), width=5, style="arc")
+        # countdown ring
         color = SUCCESS if fraction > 0.4 else WARNING if fraction > 0.15 else DANGER
-        self.create_arc(p, p, s-p, s-p, start=90, extent=-(360*fraction),
+        self.create_arc(p, p, s-p, s-p, start=90, extent=-(360 * fraction),
                         outline=color, width=5, style="arc")
-        self.create_text(s//2, s//2, text=label,
+        self.create_text(s // 2, s // 2, text=label,
                          fill=self._app.c("FG"), font=("Helvetica", 10, "bold"))
 
-# ─── MAIN APP ────────────────────────────────────────────────────────────────
+
+# ─── MAIN APPLICATION ────────────────────────────────────────────────────────
+
 class ProjectMESIMApp(ctk.CTk):
+    """Root window — owns all screens and sidebar."""
+
     def __init__(self):
         super().__init__()
         self.title("MESIM · Quadratic Equation Trainer")
@@ -257,41 +187,40 @@ class ProjectMESIMApp(ctk.CTk):
         self.timer_running  = False
         self.time_left      = 0
         self.TIMER_MAX      = 120
-        # Dot buttons for exercise navigator: list of (canvas, idx)
-        self._dot_widgets   = []
+        self._ex_results    = []
+        self._current_screen = "intro"
 
         self._build_sidebar()
         self._build_main()
         self.show_intro()
 
-    def c(self, key):
-        """Return the current palette colour for the given key."""
-        pal = _DARK if self.dark_mode else _LIGHT
-        return pal.get(key, "#ff00ff")
+    # ── Palette helper ────────────────────────────────────────────────────────
+    def c(self, key: str) -> str:
+        return (_DARK if self.dark_mode else _LIGHT).get(key, "#ff00ff")
 
     def _success_bg(self): return SUCCESS_BG_D if self.dark_mode else SUCCESS_BG_L
     def _warning_bg(self): return WARNING_BG_D if self.dark_mode else WARNING_BG_L
     def _danger_bg(self):  return DANGER_BG_D  if self.dark_mode else DANGER_BG_L
 
-    # ── Dark-mode toggle ─────────────────────────────────────────────────────
+    # ── Dark-mode toggle ──────────────────────────────────────────────────────
     def toggle_dark(self):
         self.dark_mode = not self.dark_mode
-        mode = "dark" if self.dark_mode else "light"
-        ctk.set_appearance_mode(mode)
+        ctk.set_appearance_mode("dark" if self.dark_mode else "light")
         self._dark_btn.configure(text="☀" if self.dark_mode else "☾")
-        # Rebuild whole UI to pick up new colours
-        current = self._current_screen
         self.configure(fg_color=self.c("BG"))
+        current = self._current_screen
         self._rebuild_sidebar()
-        if   current == "intro":    self.show_intro()
-        elif current == "quiz":     self.show_exercise()
-        elif current == "score":    self.show_summary()
+        if   current == "intro": self.show_intro()
+        elif current == "quiz":  self.show_exercise()
+        elif current == "score": self.show_summary()
 
-    # ── Sidebar ──────────────────────────────────────────────────────────────
+    # ── Sidebar ───────────────────────────────────────────────────────────────
     def _build_sidebar(self):
-        self.sidebar = ctk.CTkFrame(self, width=228, fg_color=self.c("SIDEBAR"),
-                                    corner_radius=0,
-                                    border_width=1, border_color=self.c("BORDER"))
+        self.sidebar = ctk.CTkFrame(
+            self, width=228,
+            fg_color=self.c("SIDEBAR"), corner_radius=0,
+            border_width=1, border_color=self.c("BORDER"),
+        )
         self.sidebar.pack(side="left", fill="y")
         self.sidebar.pack_propagate(False)
         self._fill_sidebar()
@@ -301,19 +230,18 @@ class ProjectMESIMApp(ctk.CTk):
         self._build_sidebar()
 
     def _fill_sidebar(self):
-        # ── Logo area
-        logo_top = ctk.CTkFrame(self.sidebar, fg_color="transparent")
-        logo_top.pack(pady=(28, 0), padx=20)
-        self._load_logo(logo_top)
+        # Logo
+        logo_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
+        logo_frame.pack(pady=(28, 0), padx=20)
+        self._load_logo(logo_frame)
 
-        # App name
         ctk.CTkLabel(self.sidebar, text="MESIM",
                      font=ctk.CTkFont(size=11, weight="bold"),
                      text_color=self.c("SB_MUTED")).pack(pady=(6, 0))
 
         # Divider
-        ctk.CTkFrame(self.sidebar, height=1, fg_color=self.c("BORDER")).pack(
-            fill="x", padx=20, pady=20)
+        ctk.CTkFrame(self.sidebar, height=1,
+                     fg_color=self.c("BORDER")).pack(fill="x", padx=20, pady=20)
 
         # Nav items
         self.nav_items = {}
@@ -337,37 +265,30 @@ class ProjectMESIMApp(ctk.CTk):
             text_lbl.pack(side="left", padx=(6, 0))
             self.nav_items[key] = (btn_frame, icon_lbl, text_lbl)
 
-        # ── Exercise navigator dots (shown when quiz is active) ───────────
+        # Exercise navigator dot grid
         self._dots_section = ctk.CTkFrame(self.sidebar, fg_color="transparent")
         self._dots_section.pack(fill="x", padx=16, pady=(4, 0))
-        self._dots_label = ctk.CTkLabel(self._dots_section,
-                                        text="Exercises",
-                                        font=ctk.CTkFont(size=10, weight="bold"),
-                                        text_color=self.c("TEXT_LOW"))
-        self._dots_label.pack(anchor="w", pady=(0, 6))
+        ctk.CTkLabel(self._dots_section, text="Exercises",
+                     font=ctk.CTkFont(size=10, weight="bold"),
+                     text_color=self.c("TEXT_LOW")).pack(anchor="w", pady=(0, 6))
         self._dots_grid = ctk.CTkFrame(self._dots_section, fg_color="transparent")
         self._dots_grid.pack(anchor="w")
-        # Start hidden
-        self._dots_section.pack_forget()
+        self._dots_section.pack_forget()   # hidden until quiz starts
 
-        # ── Dark-mode toggle (bottom of sidebar) ─────────────────────────
-        bottom_row = ctk.CTkFrame(self.sidebar, fg_color="transparent")
-        bottom_row.pack(side="bottom", fill="x", padx=16, pady=18)
+        # Bottom row: ENSIIE label + dark-mode button
+        bottom = ctk.CTkFrame(self.sidebar, fg_color="transparent")
+        bottom.pack(side="bottom", fill="x", padx=16, pady=18)
 
         self._dark_btn = ctk.CTkButton(
-            bottom_row,
+            bottom,
             text="☾" if not self.dark_mode else "☀",
-            width=36, height=36,
-            corner_radius=8,
-            fg_color=self.c("SURFACE2"),
-            hover_color=self.c("BORDER"),
-            text_color=self.c("FG"),
-            font=ctk.CTkFont(size=15),
-            command=self.toggle_dark
+            width=36, height=36, corner_radius=8,
+            fg_color=self.c("SURFACE2"), hover_color=self.c("BORDER"),
+            text_color=self.c("FG"), font=ctk.CTkFont(size=15),
+            command=self.toggle_dark,
         )
         self._dark_btn.pack(side="right")
-
-        ctk.CTkLabel(bottom_row, text="ENSIIE · 2026",
+        ctk.CTkLabel(bottom, text="ENSIIE · 2026",
                      font=ctk.CTkFont(size=10),
                      text_color=self.c("TEXT_LOW")).pack(side="left")
 
@@ -386,7 +307,7 @@ class ProjectMESIMApp(ctk.CTk):
                          font=ctk.CTkFont(size=22, weight="bold"),
                          text_color=self.c("ACCENT")).pack()
 
-    def _set_nav(self, active_key):
+    def _set_nav(self, active_key: str):
         self._current_screen = active_key
         for key, (frame, icon_lbl, text_lbl) in self.nav_items.items():
             if key == active_key:
@@ -401,51 +322,39 @@ class ProjectMESIMApp(ctk.CTk):
                                    font=ctk.CTkFont(size=13))
 
     def _update_dots(self, results):
-        """Redraw exercise navigator dots from results list.
+        """Redraw the exercise navigator dots.
 
-        results: list of None (pending), float ex_score (done)
+        results: list where each entry is None (pending) or a float score.
         """
-        # Rebuild grid
         for w in self._dots_grid.winfo_children():
             w.destroy()
 
-        n = len(results)
-        if n == 0:
+        if not results:
             self._dots_section.pack_forget()
             return
 
         self._dots_section.pack(fill="x", padx=16, pady=(4, 0))
+        done_count = sum(1 for r in results if r is not None)
+        cols = min(len(results), 7)
 
-        cols = min(n, 7)
         for i, r in enumerate(results):
-            col = i % cols
-            row = i // cols
-
             if r is None:
-                # Pending
-                bg    = self.c("BORDER")
-                fg    = self.c("MUTED")
-                label = str(i + 1)
+                bg, fg, lbl = self.c("BORDER"), self.c("MUTED"), str(i + 1)
             elif r == 1.0:
-                bg    = self._success_bg()
-                fg    = SUCCESS
-                label = "✓"
+                bg, fg, lbl = self._success_bg(), SUCCESS, "✓"
             elif r == 0.5:
-                bg    = self._warning_bg()
-                fg    = WARNING
-                label = "½"
+                bg, fg, lbl = self._warning_bg(), WARNING, "½"
             else:
-                bg    = self._danger_bg()
-                fg    = DANGER
-                label = "✕"
+                bg, fg, lbl = self._danger_bg(), DANGER, "✕"
 
-            is_current = (i == len([x for x in results if x is not None]))
-
+            is_current = (i == done_count)
             dot = tk.Canvas(self._dots_grid, width=28, height=28,
                             bg=self.c("SIDEBAR"), highlightthickness=0)
-            dot.grid(row=row, column=col, padx=2, pady=2)
-            dot.create_oval(2, 2, 26, 26, fill=bg, outline=self.c("ACCENT") if is_current else bg)
-            dot.create_text(14, 14, text=label, fill=fg,
+            dot.grid(row=i // cols, column=i % cols, padx=2, pady=2)
+            dot.create_oval(2, 2, 26, 26,
+                            fill=bg,
+                            outline=self.c("ACCENT") if is_current else bg)
+            dot.create_text(14, 14, text=lbl, fill=fg,
                             font=("Helvetica", 9, "bold"))
 
     # ── Main content area ─────────────────────────────────────────────────────
@@ -458,7 +367,7 @@ class ProjectMESIMApp(ctk.CTk):
         for w in self.main.winfo_children():
             w.destroy()
 
-    def _page_title(self, parent, title, subtitle=""):
+    def _page_title(self, parent, title: str, subtitle: str = ""):
         ctk.CTkLabel(parent, text=title,
                      font=ctk.CTkFont(size=26, weight="bold"),
                      text_color=self.c("FG")).pack(anchor="w")
@@ -466,10 +375,10 @@ class ProjectMESIMApp(ctk.CTk):
             ctk.CTkLabel(parent, text=subtitle,
                          font=ctk.CTkFont(size=13),
                          text_color=self.c("TEXT_MED")).pack(anchor="w", pady=(2, 0))
-        ctk.CTkFrame(parent, height=1, fg_color=self.c("BORDER")).pack(
-            fill="x", pady=(14, 20))
+        ctk.CTkFrame(parent, height=1,
+                     fg_color=self.c("BORDER")).pack(fill="x", pady=(14, 20))
 
-    def _pill(self, parent, text, fg, text_color):
+    def _pill(self, parent, text: str, fg: str, text_color: str):
         f = ctk.CTkFrame(parent, fg_color=fg, corner_radius=20)
         f.pack(side="left", padx=(0, 8))
         ctk.CTkLabel(f, text=text, font=ctk.CTkFont(size=11),
@@ -480,69 +389,61 @@ class ProjectMESIMApp(ctk.CTk):
     # ═════════════════════════════════════════════════════════════════════════
     def show_intro(self):
         self.clear()
-        self._current_screen = "intro"
         self._set_nav("intro")
         self._dots_section.pack_forget()
 
-        scroll = ctk.CTkScrollableFrame(self.main, fg_color="transparent",
-                                        scrollbar_button_color=self.c("MUTED_BG"),
-                                        scrollbar_button_hover_color=self.c("BORDER"))
+        scroll = ctk.CTkScrollableFrame(
+            self.main, fg_color="transparent",
+            scrollbar_button_color=self.c("MUTED_BG"),
+            scrollbar_button_hover_color=self.c("BORDER"),
+        )
         scroll.pack(fill="both", expand=True, padx=36, pady=28)
 
         self._page_title(scroll, "Quadratic Equation Trainer",
                          "Learn to solve ax\u00b2 + bx + c = 0 step by step")
 
-        # ── Session stats bar ──────────────────────────────────────────────
+        # ── Session stats bar ─────────────────────────────────────────────
         stats = load_stats()
         if stats["sessions"] > 0:
-            stats_card = ctk.CTkFrame(scroll, fg_color=self.c("SURFACE"),
-                                      corner_radius=12,
-                                      border_width=1, border_color=self.c("BORDER"))
-            stats_card.pack(fill="x", pady=(0, 18))
-            sc_inner = ctk.CTkFrame(stats_card, fg_color="transparent")
+            sc = ctk.CTkFrame(scroll, fg_color=self.c("SURFACE"),
+                              corner_radius=12, border_width=1,
+                              border_color=self.c("BORDER"))
+            sc.pack(fill="x", pady=(0, 18))
+            sc_inner = ctk.CTkFrame(sc, fg_color="transparent")
             sc_inner.pack(fill="x", padx=20, pady=14)
-
             ctk.CTkLabel(sc_inner, text="Your stats",
                          font=ctk.CTkFont(size=12, weight="bold"),
                          text_color=self.c("TEXT_LOW")).pack(anchor="w", pady=(0, 10))
-
-            stat_row = ctk.CTkFrame(sc_inner, fg_color="transparent")
-            stat_row.pack(fill="x")
-
+            row = ctk.CTkFrame(sc_inner, fg_color="transparent")
+            row.pack(fill="x")
             avg = (stats["total_score"] / stats["total_exercises"] * 100
                    if stats["total_exercises"] else 0)
-
             for label in [
                 f"{stats['sessions']} session{'s' if stats['sessions'] != 1 else ''}",
                 f"{stats['total_exercises']} exercises",
                 f"{avg:.0f}% avg",
                 f"{stats['best_pct']:.0f}% best",
             ]:
-                chip = ctk.CTkFrame(stat_row, fg_color=self.c("SURFACE2"),
-                                    corner_radius=8)
+                chip = ctk.CTkFrame(row, fg_color=self.c("SURFACE2"), corner_radius=8)
                 chip.pack(side="left", padx=(0, 8))
                 ctk.CTkLabel(chip, text=label,
                              font=ctk.CTkFont(size=12, weight="bold"),
                              text_color=self.c("FG")).pack(padx=12, pady=6)
 
-        # ── Theory block ──────────────────────────────────────────────────
+        # ── Theory card ───────────────────────────────────────────────────
         theory = Card(scroll, self)
         theory.pack(fill="x", pady=(0, 18))
-
         t_inner = ctk.CTkFrame(theory, fg_color="transparent")
         t_inner.pack(padx=24, pady=20, fill="x")
 
-        # Big formula badge
         badge = ctk.CTkFrame(t_inner, fg_color=self.c("ACCENT_LT"), corner_radius=10,
                              border_width=1,
                              border_color="#fecdd3" if not self.dark_mode else "#7f1d1d")
         badge.pack(fill="x", pady=(0, 16))
-        ctk.CTkLabel(badge,
-                     text="ax\u00b2 + bx + c = 0",
+        ctk.CTkLabel(badge, text="ax\u00b2 + bx + c = 0",
                      font=ctk.CTkFont(size=20, weight="bold", family="Courier"),
                      text_color=self.c("ACCENT")).pack(pady=14)
 
-        # Discriminant
         ctk.CTkLabel(t_inner, text="Discriminant",
                      font=ctk.CTkFont(size=12, weight="bold"),
                      text_color=self.c("TEXT_LOW")).pack(anchor="w")
@@ -550,27 +451,25 @@ class ProjectMESIMApp(ctk.CTk):
                      font=ctk.CTkFont(size=16, weight="bold", family="Courier"),
                      text_color=self.c("FG")).pack(anchor="w", pady=(2, 14))
 
-        # Three cases
-        cases = [
+        for disc, desc, col, bg in [
             ("\u0394 < 0", "No real solution",
              DANGER,  self._danger_bg()),
             ("\u0394 = 0", "One solution:   x = \u2212b / (2a)",
              WARNING, self._warning_bg()),
             ("\u0394 > 0", "Two solutions:   x\u2081, x\u2082 = (\u2212b \u00b1 \u221a\u0394) / (2a)",
              SUCCESS, self._success_bg()),
-        ]
-        for disc, desc, col, bg in cases:
-            row = ctk.CTkFrame(t_inner, fg_color=bg, corner_radius=10)
-            row.pack(fill="x", pady=4)
-            inner = ctk.CTkFrame(row, fg_color="transparent")
-            inner.pack(fill="x", padx=16, pady=10)
-            ctk.CTkLabel(inner, text=disc,
+        ]:
+            r = ctk.CTkFrame(t_inner, fg_color=bg, corner_radius=10)
+            r.pack(fill="x", pady=4)
+            ri = ctk.CTkFrame(r, fg_color="transparent")
+            ri.pack(fill="x", padx=16, pady=10)
+            ctk.CTkLabel(ri, text=disc,
                          font=ctk.CTkFont(size=13, weight="bold", family="Courier"),
                          text_color=col, width=60, anchor="w").pack(side="left")
-            ctk.CTkLabel(inner, text="\u2192",
+            ctk.CTkLabel(ri, text="\u2192",
                          font=ctk.CTkFont(size=13),
                          text_color=self.c("TEXT_LOW")).pack(side="left", padx=8)
-            ctk.CTkLabel(inner, text=desc,
+            ctk.CTkLabel(ri, text=desc,
                          font=ctk.CTkFont(size=13),
                          text_color=self.c("FG"), anchor="w").pack(side="left")
 
@@ -579,7 +478,6 @@ class ProjectMESIMApp(ctk.CTk):
         cfg.pack(fill="x", pady=(0, 18))
         cfg_inner = ctk.CTkFrame(cfg, fg_color="transparent")
         cfg_inner.pack(padx=24, pady=20, fill="x")
-
         ctk.CTkLabel(cfg_inner, text="Configure your session",
                      font=ctk.CTkFont(size=15, weight="bold"),
                      text_color=self.c("FG")).pack(anchor="w", pady=(0, 4))
@@ -617,23 +515,19 @@ class ProjectMESIMApp(ctk.CTk):
         except Exception:
             self.num_entry.delete(0, "end")
             self.num_entry.insert(0, "5")
-            if hasattr(self, "num_entry"):
-                self.num_entry.flash_error()
+            self.num_entry.flash_error()
             return
-        self.exercises    = [generate_exercise() for _ in range(n)]
-        self.current_ex   = 0
-        self.score        = 0.0
-        self._ex_results  = [None] * n   # track per-exercise scores
+        self.exercises   = [generate_exercise() for _ in range(n)]
+        self.current_ex  = 0
+        self.score       = 0.0
+        self._ex_results = [None] * n
         self.show_exercise()
 
     def show_exercise(self):
         self.clear()
-        self._current_screen = "quiz"
         self._set_nav("quiz")
         self.timer_running = True
         self.time_left     = self.TIMER_MAX
-
-        # Update navigator dots
         self._update_dots(self._ex_results)
 
         a, b, c, delta, typ = self.exercises[self.current_ex]
@@ -644,10 +538,9 @@ class ProjectMESIMApp(ctk.CTk):
         outer = ctk.CTkFrame(self.main, fg_color="transparent")
         outer.pack(fill="both", expand=True, padx=36, pady=28)
 
-        # ── Top bar ───────────────────────────────────────────────────────
+        # Top bar
         topbar = ctk.CTkFrame(outer, fg_color="transparent")
         topbar.pack(fill="x", pady=(0, 10))
-
         left = ctk.CTkFrame(topbar, fg_color="transparent")
         left.pack(side="left", fill="y")
         ctk.CTkLabel(left, text=f"Exercise {idx} / {total}",
@@ -658,8 +551,8 @@ class ProjectMESIMApp(ctk.CTk):
                      text_color=self.c("TEXT_LOW")).pack(anchor="w")
 
         timer_wrap = ctk.CTkFrame(topbar, fg_color=self.c("SURFACE"),
-                                  corner_radius=12,
-                                  border_width=1, border_color=self.c("BORDER"))
+                                  corner_radius=12, border_width=1,
+                                  border_color=self.c("BORDER"))
         timer_wrap.pack(side="right")
         self.timer_arc = TimerArc(timer_wrap, self, size=72)
         self.timer_arc.pack(padx=8, pady=8)
@@ -673,34 +566,30 @@ class ProjectMESIMApp(ctk.CTk):
         pbar.set((idx - 1) / total)
         pbar.pack(fill="x", pady=(0, 18))
 
-        # ── Equation tint card ────────────────────────────────────────────
+        # Equation card
         eq_card = TintCard(outer, self)
         eq_card.pack(fill="x", pady=(0, 14))
         eq_in = ctk.CTkFrame(eq_card, fg_color="transparent")
         eq_in.pack(padx=24, pady=18, fill="x")
-
-        row_eq = ctk.CTkFrame(eq_in, fg_color="transparent")
-        row_eq.pack(fill="x")
-        ctk.CTkLabel(row_eq, text="Solve:",
+        eq_row = ctk.CTkFrame(eq_in, fg_color="transparent")
+        eq_row.pack(fill="x")
+        ctk.CTkLabel(eq_row, text="Solve:",
                      font=ctk.CTkFont(size=12),
                      text_color=self.c("TEXT_MED")).pack(side="left", padx=(0, 12))
-        ctk.CTkLabel(row_eq,
-                     text=format_equation(a, b, c),
+        ctk.CTkLabel(eq_row, text=format_equation(a, b, c),
                      font=ctk.CTkFont(size=24, weight="bold", family="Courier"),
                      text_color=self.c("ACCENT")).pack(side="left")
-
-        pt_badge = ctk.CTkFrame(eq_in, fg_color=self.c("MUTED_BG"), corner_radius=20)
-        pt_badge.pack(anchor="w", pady=(10, 0))
-        ctk.CTkLabel(pt_badge, text=f"  Type {typ}  ·  1 point  ",
+        badge = ctk.CTkFrame(eq_in, fg_color=self.c("MUTED_BG"), corner_radius=20)
+        badge.pack(anchor="w", pady=(10, 0))
+        ctk.CTkLabel(badge, text=f"  Type {typ}  ·  1 point  ",
                      font=ctk.CTkFont(size=11),
                      text_color=self.c("TEXT_MED")).pack(padx=4, pady=4)
 
-        # ── Answer inputs ─────────────────────────────────────────────────
+        # Answer inputs
         ans_card = Card(outer, self)
         ans_card.pack(fill="x", pady=(0, 18))
         ans_in = ctk.CTkFrame(ans_card, fg_color="transparent")
         ans_in.pack(padx=24, pady=20, fill="x")
-
         ctk.CTkLabel(ans_in, text="Your answers",
                      font=ctk.CTkFont(size=14, weight="bold"),
                      text_color=self.c("FG")).pack(anchor="w", pady=(0, 14))
@@ -714,33 +603,29 @@ class ProjectMESIMApp(ctk.CTk):
             q_row.pack(fill="x", pady=5)
             q_inner = ctk.CTkFrame(q_row, fg_color="transparent")
             q_inner.pack(fill="x", padx=16, pady=12)
-
-            ctk.CTkLabel(q_inner, text=q_text,
-                         font=ctk.CTkFont(size=13),
+            ctk.CTkLabel(q_inner, text=q_text, font=ctk.CTkFont(size=13),
                          text_color=self.c("FG"), anchor="w").pack(
                          side="left", expand=True, fill="x")
-            pts_lbl = ctk.CTkFrame(q_inner, fg_color=self.c("MUTED_BG"), corner_radius=20)
-            pts_lbl.pack(side="left", padx=(8, 12))
-            ctk.CTkLabel(pts_lbl, text=pts,
-                         font=ctk.CTkFont(size=10),
+            pts_f = ctk.CTkFrame(q_inner, fg_color=self.c("MUTED_BG"), corner_radius=20)
+            pts_f.pack(side="left", padx=(8, 12))
+            ctk.CTkLabel(pts_f, text=pts, font=ctk.CTkFont(size=10),
                          text_color=self.c("TEXT_MED")).pack(padx=8, pady=3)
-
             entry = ModernEntry(q_inner, self, width=150, placeholder_text=ph)
             entry.pack(side="left")
             setattr(self, attr, entry)
             entries.append(entry)
 
-        # Tab cycles between fields; Enter submits
-        def _tab_to_next(_, nxt):
+        # Keyboard navigation
+        def _tab_to(_, nxt):
             nxt.focus_set()
             return "break"
 
-        entries[0].bind("<Tab>",    lambda _: _tab_to_next(_, entries[1]))
-        entries[1].bind("<Tab>",    lambda _: _tab_to_next(_, entries[0]))
+        entries[0].bind("<Tab>",    lambda _: _tab_to(_, entries[1]))
+        entries[1].bind("<Tab>",    lambda _: _tab_to(_, entries[0]))
         entries[0].bind("<Return>", lambda _: self.try_submit())
         entries[1].bind("<Return>", lambda _: self.try_submit())
 
-        # ── Buttons ───────────────────────────────────────────────────────
+        # Action buttons
         btn_row = ctk.CTkFrame(outer, fg_color="transparent")
         btn_row.pack(fill="x")
         PrimaryBtn(btn_row, self, text="Submit Answer", width=180,
@@ -748,11 +633,10 @@ class ProjectMESIMApp(ctk.CTk):
         SecondaryBtn(btn_row, self, text="Skip", width=110,
                      command=self._skip).pack(side="right", padx=(0, 10))
 
-        # Focus first entry
         entries[0].focus_set()
 
     def try_submit(self):
-        """Validate entries then submit; flash red border on bad input."""
+        """Validate inputs; flash red on errors, submit if all valid."""
         d_val = self.delta_entry.get().strip().replace(",", ".")
         n_val = self.nsol_entry.get().strip()
         err = False
@@ -762,8 +646,7 @@ class ProjectMESIMApp(ctk.CTk):
             self.delta_entry.flash_error()
             err = True
         try:
-            v = int(n_val)
-            assert v in (0, 1, 2)
+            assert int(n_val) in (0, 1, 2)
         except Exception:
             self.nsol_entry.flash_error()
             err = True
@@ -781,9 +664,9 @@ class ProjectMESIMApp(ctk.CTk):
     def run_timer(self):
         if not self.timer_running:
             return
-        frac  = self.time_left / self.TIMER_MAX
-        mins  = self.time_left // 60
-        secs  = self.time_left % 60
+        frac = self.time_left / self.TIMER_MAX
+        mins = self.time_left // 60
+        secs = self.time_left % 60
         try:
             self.timer_arc.update_timer(frac, f"{mins}:{secs:02d}")
         except Exception:
@@ -822,22 +705,17 @@ class ProjectMESIMApp(ctk.CTk):
     # ═════════════════════════════════════════════════════════════════════════
     def show_correction(self, a, b, c, delta, correct_nsol, ex_score):
         self.clear()
-        self._current_screen = "quiz"
         self._set_nav("quiz")
-
-        # Update dots now that this exercise is scored
         self._update_dots(self._ex_results)
 
         scroll = ctk.CTkScrollableFrame(self.main, fg_color="transparent",
                                         scrollbar_button_color=self.c("MUTED_BG"))
         scroll.pack(fill="both", expand=True, padx=36, pady=28)
 
-        # ── Header row ────────────────────────────────────────────────────
+        # Header
         hdr = ctk.CTkFrame(scroll, fg_color="transparent")
         hdr.pack(fill="x", pady=(0, 4))
-
-        ctk.CTkLabel(hdr,
-                     text=f"Exercise {self.current_ex + 1}  ·  Correction",
+        ctk.CTkLabel(hdr, text=f"Exercise {self.current_ex + 1}  ·  Correction",
                      font=ctk.CTkFont(size=22, weight="bold"),
                      text_color=self.c("FG")).pack(side="left")
 
@@ -854,26 +732,24 @@ class ProjectMESIMApp(ctk.CTk):
         ctk.CTkFrame(scroll, height=1, fg_color=self.c("BORDER")).pack(
             fill="x", pady=(8, 18))
 
-        # ── Equation display ──────────────────────────────────────────────
+        # Equation
         eq_card = TintCard(scroll, self)
         eq_card.pack(fill="x", pady=(0, 12))
-        ctk.CTkLabel(eq_card,
-                     text=format_equation(a, b, c),
+        ctk.CTkLabel(eq_card, text=format_equation(a, b, c),
                      font=ctk.CTkFont(size=22, weight="bold", family="Courier"),
                      text_color=self.c("ACCENT")).pack(padx=24, pady=18)
 
-        # ── Results card ──────────────────────────────────────────────────
+        # Step-by-step results
         res_card = Card(scroll, self)
         res_card.pack(fill="x", pady=(0, 12))
         res_in = ctk.CTkFrame(res_card, fg_color="transparent")
         res_in.pack(padx=24, pady=18, fill="x")
-
         ctk.CTkLabel(res_in, text="Step-by-step solution",
                      font=ctk.CTkFont(size=13, weight="bold"),
                      text_color=self.c("TEXT_LOW")).pack(anchor="w", pady=(0, 12))
 
         def result_row(label, value, val_color=None):
-            if val_color is None: val_color = self.c("FG")
+            color = val_color or self.c("FG")
             r = ctk.CTkFrame(res_in, fg_color=self.c("SURFACE2"), corner_radius=8)
             r.pack(fill="x", pady=3)
             ri = ctk.CTkFrame(r, fg_color="transparent")
@@ -883,22 +759,20 @@ class ProjectMESIMApp(ctk.CTk):
                          width=200).pack(side="left")
             ctk.CTkLabel(ri, text=value,
                          font=ctk.CTkFont(size=13, weight="bold", family="Courier"),
-                         text_color=val_color).pack(side="left")
+                         text_color=color).pack(side="left")
 
         result_row("Discriminant  \u0394 =", str(delta))
         result_row("Number of solutions:", str(correct_nsol))
-
         if correct_nsol == 1:
-            x0 = round(-b / (2*a), 6)
+            x0 = round(-b / (2 * a), 6)
             result_row("Solution:", f"x\u2080 = {x0}", SUCCESS)
         elif correct_nsol == 2:
             sq = math.sqrt(abs(delta))
-            x1 = round((-b - sq) / (2*a), 6)
-            x2 = round((-b + sq) / (2*a), 6)
+            x1 = round((-b - sq) / (2 * a), 6)
+            x2 = round((-b + sq) / (2 * a), 6)
             result_row("Solutions:", f"x\u2081 = {x1}", SUCCESS)
             result_row("",           f"x\u2082 = {x2}", SUCCESS)
 
-        # Running total
         self.current_ex += 1
         remaining = len(self.exercises) - self.current_ex
         ctk.CTkLabel(scroll,
@@ -907,7 +781,6 @@ class ProjectMESIMApp(ctk.CTk):
                      font=ctk.CTkFont(size=12),
                      text_color=self.c("TEXT_LOW")).pack(anchor="w", pady=(6, 18))
 
-        # Buttons
         btn_row = ctk.CTkFrame(scroll, fg_color="transparent")
         btn_row.pack(fill="x")
         if self.current_ex < len(self.exercises):
@@ -926,11 +799,8 @@ class ProjectMESIMApp(ctk.CTk):
     # ═════════════════════════════════════════════════════════════════════════
     def show_summary(self):
         self.clear()
-        self._current_screen = "score"
         self._set_nav("score")
-
-        # Keep dots visible (read-only) in summary
-        self._update_dots(self._ex_results if hasattr(self, "_ex_results") else [])
+        self._update_dots(self._ex_results)
 
         outer = ctk.CTkFrame(self.main, fg_color="transparent")
         outer.pack(fill="both", expand=True, padx=48, pady=36)
@@ -940,46 +810,32 @@ class ProjectMESIMApp(ctk.CTk):
         total = len(self.exercises)
         score = round(self.score, 2)
         pct   = (score / total * 100) if total else 0
-
         ring_color = SUCCESS if pct >= 80 else WARNING if pct >= 50 else DANGER
 
-        # ── Animated score ring ───────────────────────────────────────────
-        RING_SIZE = 170
-        ring_canvas = tk.Canvas(outer, width=RING_SIZE, height=RING_SIZE,
+        # Animated score ring
+        RS = 170
+        ring_canvas = tk.Canvas(outer, width=RS, height=RS,
                                 bg=self.c("BG"), highlightthickness=0)
         ring_canvas.pack(pady=(0, 20))
-
         p = 14
         target_extent = -(360 * score / total) if total else 0
 
-        # Draw static track
-        ring_canvas.create_oval(p, p, RING_SIZE-p, RING_SIZE-p,
+        ring_canvas.create_oval(p, p, RS-p, RS-p,
                                 outline=self.c("MUTED_BG"), width=12)
-        # Arc tag so we can delete/redraw only the arc
-        ring_canvas.create_arc(p, p, RING_SIZE-p, RING_SIZE-p,
-                               start=90, extent=0,
-                               outline=ring_color, width=12, style="arc",
-                               tags="arc")
-        # Text labels
-        ring_canvas.create_text(RING_SIZE//2, 76,
-                                text=f"{score}/{total}",
+        ring_canvas.create_arc(p, p, RS-p, RS-p, start=90, extent=0,
+                               outline=ring_color, width=12, style="arc", tags="arc")
+        ring_canvas.create_text(RS//2, 76, text=f"{score}/{total}",
                                 fill=self.c("FG"),
-                                font=("Helvetica", 22, "bold"), tags="score_text")
-        ring_canvas.create_text(RING_SIZE//2, 104,
-                                text=f"{pct:.0f}%",
-                                fill=self.c("TEXT_MED"),
-                                font=("Helvetica", 13), tags="pct_text")
+                                font=("Helvetica", 22, "bold"))
+        ring_canvas.create_text(RS//2, 104, text=f"{pct:.0f}%",
+                                fill=self.c("TEXT_MED"), font=("Helvetica", 13))
 
-        # Animate the arc from 0 → target_extent over ~900 ms (60 steps)
         STEPS = 60
         def _animate(step):
-            frac = step / STEPS
-            # ease-out cubic
-            ease = 1 - (1 - frac) ** 3
-            current_ext = target_extent * ease
+            ease = 1 - (1 - step / STEPS) ** 3
             ring_canvas.delete("arc")
-            ring_canvas.create_arc(p, p, RING_SIZE-p, RING_SIZE-p,
-                                   start=90, extent=current_ext,
+            ring_canvas.create_arc(p, p, RS-p, RS-p,
+                                   start=90, extent=target_extent * ease,
                                    outline=ring_color, width=12, style="arc",
                                    tags="arc")
             if step < STEPS:
@@ -987,21 +843,17 @@ class ProjectMESIMApp(ctk.CTk):
 
         self.after(100, lambda: _animate(0))
 
-        # Verdict
         if pct >= 80:   verdict, v_col = "Excellent!", SUCCESS
         elif pct >= 50: verdict, v_col = "Good effort!", WARNING
         else:           verdict, v_col = "Keep practicing!", DANGER
-
         ctk.CTkLabel(outer, text=verdict,
                      font=ctk.CTkFont(size=24, weight="bold"),
                      text_color=v_col).pack(pady=(0, 20))
 
-        # ── Stats card ────────────────────────────────────────────────────
         sc = Card(outer, self)
         sc.pack(fill="x", pady=(0, 24))
         sc_in = ctk.CTkFrame(sc, fg_color="transparent")
         sc_in.pack(padx=24, pady=18, fill="x")
-
         for label, value in [
             ("Total score",    f"{score} / {total}"),
             ("Percentage",     f"{pct:.1f} %"),
@@ -1017,15 +869,9 @@ class ProjectMESIMApp(ctk.CTk):
                          font=ctk.CTkFont(size=14, weight="bold"),
                          text_color=self.c("FG"), anchor="e").pack(side="right")
 
-        # ── Buttons ───────────────────────────────────────────────────────
         btn_row = ctk.CTkFrame(outer, fg_color="transparent")
         btn_row.pack(fill="x")
         PrimaryBtn(btn_row, self, text="New Quiz", width=150,
                    command=self.show_intro).pack(side="right")
         SecondaryBtn(btn_row, self, text="Back to Intro", width=160,
                      command=self.show_intro).pack(side="right", padx=(0, 10))
-
-
-if __name__ == "__main__":
-    app = ProjectMESIMApp()
-    app.mainloop()

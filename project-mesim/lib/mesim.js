@@ -1,6 +1,28 @@
 // ─── MESIM Math Engine ───────────────────────────────────────────────────────
 // Discrete inverse-CDF sampler + quadratic exercise generators
-// Mirrors the Python logic from project_app.py exactly.
+// Mirrors the Python logic from generators.py exactly.
+
+// ── Fraction helpers ─────────────────────────────────────────────────────────
+
+function gcd(a, b) {
+  a = Math.abs(a); b = Math.abs(b);
+  while (b) { [a, b] = [b, a % b]; }
+  return a;
+}
+
+/** Reduce an integer ratio to lowest terms. Returns { n, d } where d > 0. */
+function reduce(n, d) {
+  if (d === 0) return { n, d };
+  const g = gcd(Math.abs(n), Math.abs(d));
+  n = n / g; d = d / g;
+  if (d < 0) { n = -n; d = -d; }
+  return { n, d };
+}
+
+/** Format a reduced fraction as a string: "3", "-5/4", etc. */
+function fmtFrac({ n, d }) {
+  return d === 1 ? String(n) : `${n}/${d}`;
+}
 
 // ── Core sampler ─────────────────────────────────────────────────────────────
 
@@ -39,8 +61,11 @@ function generateCase1() {
   const a = discreteSample(E, pe);
   const b = discreteSample(E, pe);
   const e = uniformSample(Esmall);
-  const c = (b * b + e) / (4 * a);
-  return { a, b, c, delta: b * b - 4 * a * c };
+  // c = (b²+e)/(4|a|), sign-flipped when a<0 — stored as reduced fraction
+  let cFrac = reduce(b * b + e, 4 * Math.abs(a));
+  if (a < 0) cFrac = { n: -cFrac.n, d: cFrac.d };
+  const c = cFrac.n / cFrac.d;
+  return { a, b, c, cFrac, delta: b * b - 4 * a * c };
 }
 
 /** Case 2: Δ = 0  (prob 2/5) */
@@ -71,12 +96,13 @@ function generateCase3() {
 
   let x1, x2;
   if (Math.random() < 0.5) {
-    // Case 3.1 — rational roots h/ℓ, k/ℓ
+    // Case 3.1 — rational roots h/ℓ, k/ℓ stored as reduced fractions
     const h  = discreteSample(E, pe);
     const k  = discreteSample(E, pe);
     const ll = discreteSample(E, pZ);
-    x1 = h / ll;
-    x2 = k / ll;
+    const f1 = reduce(h, ll), f2 = reduce(k, ll);
+    x1 = f1.n / f1.d;
+    x2 = f2.n / f2.d;
   } else {
     // Case 3.2 — clear denominators so coefficients are integers:
     //   roots are x = (-h ± e√p) / l
@@ -143,16 +169,22 @@ export function scoreAnswer(exercise, deltaStr, nsolStr) {
   return pts;
 }
 
-/** Format ax² + bx + c = 0 as a readable string. */
+/** Format ax² + bx + c = 0 as a readable string, showing reduced fractions. */
 export function formatEquation(a, b, c) {
-  a = fmt4(a); b = fmt4(b); c = fmt4(c);
+  const fmtCoef = (v) => {
+    const f = reduce(Math.round(v * 10000), 10000);
+    if (Math.abs(f.n / f.d - v) < 1e-9) return fmtFrac(f);
+    return String(fmt4(v));
+  };
 
   const term = (coef, variable, first = false) => {
     if (coef === 0) return "";
-    const absC = Math.abs(coef);
-    const sign = coef < 0 ? (first ? "−" : " − ") : first ? "" : " + ";
-    const mag  = absC === 1 && variable ? "" : String(absC);
-    return `${sign}${mag}${variable}`;
+    const neg  = coef < 0;
+    const absV = Math.abs(coef);
+    const mag  = fmtCoef(absV);
+    const sign = neg ? (first ? "−" : " − ") : first ? "" : " + ";
+    const m    = (mag === "1" && variable) ? "" : mag;
+    return `${sign}${m}${variable}`;
   };
 
   const s = term(a, "x²", true) + term(b, "x") + term(c, "");

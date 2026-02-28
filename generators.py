@@ -1,6 +1,7 @@
 import math
 import os
 import json
+from fractions import Fraction
 import numpy as np
 
 # ─── STATS PERSISTENCE ───────────────────────────────────────────────────────
@@ -42,20 +43,32 @@ def generate_discrete_sample(values, probs, N=1):
     return samples[0] if N == 1 else np.array(samples)
 
 # ─── EQUATION FORMATTER ──────────────────────────────────────────────────────
+def _fmt_coef(coef) -> str:
+    """Return a clean string for a coefficient: fraction if rational, else decimal."""
+    if isinstance(coef, Fraction):
+        return str(coef)
+    f = Fraction(coef).limit_denominator(10000)
+    # If the fraction reconstructs the float exactly enough, show it
+    if abs(float(f) - coef) < 1e-9:
+        return str(f)
+    return str(round(coef, 4))
+
 def format_equation(a, b, c) -> str:
     """Return a human-readable string for ax² + bx + c = 0."""
-    a, b, c = round(a, 4), round(b, 4), round(c, 4)
 
     def fmt(coef, var, first=False):
         if coef == 0: return ""
+        s     = _fmt_coef(coef)
+        neg   = s.startswith("-")
+        abs_s = s.lstrip("-")
         if first:
-            if coef == 1  and var: return var
-            if coef == -1 and var: return f"-{var}"
-            return f"{coef}{var}"
-        if coef == 1  and var: return f" + {var}"
-        if coef == -1 and var: return f" - {var}"
-        if coef > 0:           return f" + {coef}{var}"
-        return f" - {abs(coef)}{var}"
+            if s == "1"  and var: return var
+            if s == "-1" and var: return f"-{var}"
+            return f"{s}{var}"
+        if neg:
+            return f" - {abs_s}{var}" if (abs_s != "1" or not var) else f" - {var}"
+        else:
+            return f" + {abs_s}{var}" if (abs_s != "1" or not var) else f" + {var}"
 
     return fmt(a, "x\u00b2", first=True) + fmt(b, "x") + fmt(c, "") + " = 0"
 
@@ -77,11 +90,11 @@ def _case1():
 
     # Generate Discrete sample c from small E
     e = generate_discrete_sample(E_small, ps)
-    c = (b**2 + e) / (4 * abs(a))
-    # Prevent minus 
+    c = Fraction(int(b**2 + e), 4 * abs(int(a)))
     if a < 0:
-        c = -c # Flip sign, so c > (b^2/4a)
-    return a, b, c, b**2 - 4 * a * c
+        c = -c  # Flip sign so c > b²/(4a)
+    delta = Fraction(int(b)**2) - 4 * int(a) * c
+    return int(a), int(b), c, delta
 
 def _case2():
     """Type 2 — discriminant = 0 (one repeated root)."""
@@ -136,7 +149,7 @@ def _case3():
         # l from Z which given
         ll = generate_discrete_sample(E, pZ)
 
-        x1, x2 = h / ll, k / ll
+        x1, x2 = Fraction(int(h), int(ll)), Fraction(int(k), int(ll))
 
     # Case 2
     else:
@@ -157,7 +170,7 @@ def _case3():
         return a, b, c, b ** 2 - 4 * a * c
 
     a, b, c = 1, -(x1 + x2), x1 * x2
-    return a, b, c, b**2 - 4 * a * c
+    return a, b, c, b**2 - 4*a*c
 
 def generate_exercise() -> tuple:
     """Return one exercise as (a, b, c, delta, type_id) where type_id in {1,2,3}.

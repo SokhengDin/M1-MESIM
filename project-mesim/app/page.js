@@ -48,16 +48,26 @@ function KTex({ tex, block = false, className = "" }) {
   return <Tag className={className} dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
+/** Reduce a float to an irreducible fraction string for LaTeX, e.g. -5/4 → "-\\frac{5}{4}" */
+function toLatexCoef(v) {
+  const n0 = Math.round(v * 10000), d0 = 10000;
+  let a = Math.abs(n0), b = d0;
+  while (b) { [a, b] = [b, a % b]; }
+  const n = n0 / a, d = d0 / a;
+  if (Math.abs(n / d - v) > 1e-9) return String(fmt4(v));
+  if (d === 1) return String(n);
+  return n < 0 ? `-\\frac{${-n}}{${d}}` : `\\frac{${n}}{${d}}`;
+}
+
 /** Build LaTeX string for ax²+bx+c=0 */
 function toLatex(a, b, c) {
-  a = fmt4(a); b = fmt4(b); c = fmt4(c);
   const parts = [];
   const push = (coef, v, first = false) => {
     if (coef === 0) return;
-    const abs = Math.abs(coef);
-    const sign = coef < 0 ? "-" : "+";
-    const mag = abs === 1 && v ? "" : String(abs);
-    parts.push(first ? (coef < 0 ? `-${mag}${v}` : `${mag}${v}`) : `${sign} ${mag}${v}`);
+    const neg = coef < 0;
+    const absV = Math.abs(coef);
+    const mag = absV === 1 && v ? "" : toLatexCoef(absV);
+    parts.push(first ? (neg ? `-${mag}${v}` : `${mag}${v}`) : `${neg ? "-" : "+"} ${mag}${v}`);
   };
   push(a, "x^2", true); push(b, "x"); push(c, "");
   return (parts.join(" ") || "0") + " = 0";

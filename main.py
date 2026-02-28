@@ -1,12 +1,3 @@
-"""
-main.py
-───────
-Entry point for the MESIM desktop application.
-
-Run with:
-    python main.py
-"""
-
 from app import ProjectMESIMApp
 
 

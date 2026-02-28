@@ -1,12 +1,3 @@
-"""
-app.py
-──────
-CustomTkinter UI for the MESIM quadratic-equation trainer.
-All mathematical logic lives in generators.py.
-
-Entry point: ProjectMESIMApp  (ctk.CTk subclass)
-"""
-
 import math
 import os
 import io

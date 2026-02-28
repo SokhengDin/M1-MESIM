@@ -193,18 +193,6 @@ class ProjectMESIMApp(ctk.CTk):
     def _warning_bg(self): return WARNING_BG_D if self.dark_mode else WARNING_BG_L
     def _danger_bg(self):  return DANGER_BG_D  if self.dark_mode else DANGER_BG_L
 
-    # ── Dark-mode toggle ──────────────────────────────────────────────────────
-    def toggle_dark(self):
-        self.dark_mode = not self.dark_mode
-        ctk.set_appearance_mode("dark" if self.dark_mode else "light")
-        self._dark_btn.configure(text="☀" if self.dark_mode else "☾")
-        self.configure(fg_color=self.c("BG"))
-        current = self._current_screen
-        self._rebuild_sidebar()
-        if   current == "intro": self.show_intro()
-        elif current == "quiz":  self.show_exercise()
-        elif current == "score": self.show_summary()
-
     # ── Sidebar ───────────────────────────────────────────────────────────────
     def _build_sidebar(self):
         self.sidebar = ctk.CTkFrame(
@@ -266,22 +254,10 @@ class ProjectMESIMApp(ctk.CTk):
         self._dots_grid.pack(anchor="w")
         self._dots_section.pack_forget()   # hidden until quiz starts
 
-        # Bottom row: ENSIIE label + dark-mode button
-        bottom = ctk.CTkFrame(self.sidebar, fg_color="transparent")
-        bottom.pack(side="bottom", fill="x", padx=16, pady=18)
-
-        self._dark_btn = ctk.CTkButton(
-            bottom,
-            text="☾" if not self.dark_mode else "☀",
-            width=36, height=36, corner_radius=8,
-            fg_color=self.c("SURFACE2"), hover_color=self.c("BORDER"),
-            text_color=self.c("FG"), font=ctk.CTkFont(size=15),
-            command=self.toggle_dark,
-        )
-        self._dark_btn.pack(side="right")
-        ctk.CTkLabel(bottom, text="ENSIIE · 2026",
+        # Footer
+        ctk.CTkLabel(self.sidebar, text="ENSIIE · 2026",
                      font=ctk.CTkFont(size=10),
-                     text_color=self.c("TEXT_LOW")).pack(side="left")
+                     text_color=self.c("TEXT_LOW")).pack(side="bottom", pady=18)
 
     def _load_logo(self, parent):
         try:
@@ -630,7 +606,7 @@ class ProjectMESIMApp(ctk.CTk):
         """Validate inputs; flash red on errors, submit if all valid."""
         d_val = self.delta_entry.get().strip().replace(",", ".")
         n_val = self.nsol_entry.get().strip()
-        err = False
+        err   = False
         try:
             float(d_val)
         except ValueError:

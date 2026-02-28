@@ -1,0 +1,4 @@
+customtkinter==5.2.2
+numpy==2.4.1
+cairosvg==2.8.2
+Pillow==12.1.0

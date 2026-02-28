@@ -1,4 +1,4 @@
-from app import ProjectMESIMApp
+from gui import ProjectMESIMApp
 
 
 def main():
